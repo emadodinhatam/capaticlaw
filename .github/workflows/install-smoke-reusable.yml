@@ -491,7 +491,7 @@ jobs:
 
       - name: Upload root Dockerfile image artifact
         id: image_artifact_upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ steps.image_artifact.outputs.artifact_name }}
           path: ${{ steps.image_artifact.outputs.artifact_path }}
@@ -929,7 +929,7 @@ jobs:
 
       - name: Upload candidate payload artifact
         id: payload_upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ steps.payload.outputs.artifact_name }}
           path: ${{ steps.payload.outputs.artifact_path }}
@@ -1011,7 +1011,7 @@ jobs:
 
       - name: Upload installer smoke image artifact
         id: image_artifact_upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ steps.image_artifact.outputs.artifact_name }}
           path: ${{ steps.image_artifact.outputs.artifact_path }}
@@ -1093,7 +1093,7 @@ jobs:
 
       - name: Upload installer non-root image artifact
         id: image_artifact_upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ steps.image_artifact.outputs.artifact_name }}
           path: ${{ steps.image_artifact.outputs.artifact_path }}
@@ -1647,7 +1647,7 @@ jobs:
 
       - name: Upload Bun-only runtime smoke artifacts
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: bun-only-runtime-smoke-${{ github.run_attempt }}
           # Evidence only; the installed package trees and state under this directory are hundreds of MB.
