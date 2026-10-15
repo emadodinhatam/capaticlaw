@@ -1,0 +1,164 @@
+name: CapatiClaw Native macOS
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version override"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-native-macos:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.21.0"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build gateway
+        run: pnpm build:runtime
+
+      - name: Build Swift app
+        working-directory: apps/macos
+        run: |
+          echo "=== Swift version ==="
+          swift --version 2>&1 | head -n 5
+          xcodebuild -version 2>&1 | head -n 5
+          echo "=== Building ==="
+          swift build -c release 2>&1 | tail -n 30
+          echo "=== Result ==="
+          ls -lh .build/release/CapatiClaw 2>&1 | head -n 10
+          ls -lh .build/release/ 2>&1 | head -n 20
+
+      - name: Package .app bundle
+        run: |
+          VERSION="${{ inputs.version || github.ref_name }}"
+          VERSION="${VERSION#v}"
+          echo "Version: $VERSION"
+
+          # Create .app bundle
+          APP="CapatiClaw.app"
+          rm -rf "$APP"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+
+          # Copy Swift binary if built
+          if [ -f "apps/macos/.build/release/CapatiClaw" ]; then
+            cp "apps/macos/.build/release/CapatiClaw" "$APP/Contents/MacOS/CapatiClaw"
+            chmod +x "$APP/Contents/MacOS/CapatiClaw"
+            echo "Swift binary included"
+          else
+            # Fallback: shell launcher with bundled Node
+            cat > "$APP/Contents/MacOS/CapatiClaw" << 'LAUNCHER'
+          #!/bin/bash
+          RESOURCES="$(cd "$(dirname "$0")/../Resources" && pwd)"
+          BUNDLED_NODE="$RESOURCES/node/node"
+          [ -x "$BUNDLED_NODE" ] && NODE="$BUNDLED_NODE" || NODE="node"
+          if [ ! -t 1 ]; then
+            if [ ! -f "$HOME/.openclaw/config.yaml" ] && [ ! -f "$HOME/.capaticlaw/config.yaml" ]; then
+              CMD="clear; echo '🦞 CapatiClaw — راه‌اندازی'; echo ''; \"$NODE\" \"$RESOURCES/capaticlaw.mjs\" onboard --install-daemon"
+            else
+              CMD="clear; echo '🦞 CapatiClaw'; echo ''; \"$NODE\" \"$RESOURCES/capaticlaw.mjs\" dashboard"
+            fi
+            [ $# -gt 0 ] && CMD="clear; \"$NODE\" \"$RESOURCES/capaticlaw.mjs\" $*"
+            /usr/bin/osascript -e "tell application \"Terminal\" to activate" -e "tell application \"Terminal\" to do script \"$CMD\"" 2>/dev/null || exec "$NODE" "$RESOURCES/capaticlaw.mjs" dashboard
+            exit 0
+          fi
+          [ $# -eq 0 ] && exec "$NODE" "$RESOURCES/capaticlaw.mjs" dashboard || exec "$NODE" "$RESOURCES/capaticlaw.mjs" "$@"
+          LAUNCHER
+            chmod +x "$APP/Contents/MacOS/CapatiClaw"
+            echo "Shell launcher used"
+          fi
+
+          # Info.plist
+          cat > "$APP/Contents/Info.plist" << PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleDisplayName</key><string>CapatiClaw</string>
+            <key>CFBundleExecutable</key><string>CapatiClaw</string>
+            <key>CFBundleIconFile</key><string>AppIcon</string>
+            <key>CFBundleIdentifier</key><string>com.capati.capaticlaw</string>
+            <key>CFBundleName</key><string>CapatiClaw</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>$VERSION</string>
+            <key>CFBundleVersion</key><string>$VERSION</string>
+            <key>LSMinimumSystemVersion</key><string>10.15</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict></plist>
+          PLIST
+          echo -n "APPL????" > "$APP/Contents/PkgInfo"
+
+          # Icon
+          if [ -f "apps/macos/Icon.icon/Assets/icon_1024.png" ]; then
+            echo "Icon found"
+          fi
+
+          # Gateway + Node
+          cp capaticlaw.mjs openclaw.mjs "$APP/Contents/Resources/" 2>/dev/null || true
+          cp *.mjs "$APP/Contents/Resources/" 2>/dev/null || true
+          cp package.json LICENSE "$APP/Contents/Resources/" 2>/dev/null || true
+          cp -r dist "$APP/Contents/Resources/dist" 2>/dev/null || true
+          mkdir -p "$APP/Contents/Resources/skills-capati"
+          cp skills/capati/SKILL.md "$APP/Contents/Resources/skills-capati/" 2>/dev/null || true
+
+          # Bundle Node for macOS
+          mkdir -p "$APP/Contents/Resources/node"
+          NODE_BIN=$(which node)
+          cp "$NODE_BIN" "$APP/Contents/Resources/node/node" 2>/dev/null || echo "Node bundle skipped"
+          chmod +x "$APP/Contents/Resources/node/node" 2>/dev/null || true
+
+          echo "=== App bundle ==="
+          du -sh "$APP" 2>&1 | head -n 5
+          ls -lh "$APP/Contents/MacOS/CapatiClaw" "$APP/Contents/Info.plist" 2>&1 | head -n 5
+
+          # Create tar.gz
+          tar czf "CapatiClaw-${VERSION}-macOS-Native.tar.gz" -C . "$APP" 2>&1 | head -n 5
+          ls -lh "CapatiClaw-${VERSION}-macOS-Native.tar.gz" 2>&1 | head -n 5
+
+          # Create DMG if possible
+          if command -v hdiutil >/dev/null 2>&1; then
+            echo "Creating DMG..."
+            hdiutil create -volname "CapatiClaw" -srcfolder "$APP" -ov -format UDZO "CapatiClaw-${VERSION}.dmg" 2>&1 | tail -n 10
+            ls -lh "CapatiClaw-${VERSION}.dmg" 2>&1 | head -n 5
+          else
+            echo "hdiutil not available, skipping DMG"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: capaticlaw-macos-native
+          path: |
+            CapatiClaw-*.tar.gz
+            CapatiClaw-*.dmg
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            CapatiClaw-*.tar.gz
+            CapatiClaw-*.dmg
+          generate_release_notes: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
