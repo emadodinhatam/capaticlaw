@@ -15,7 +15,16 @@ permissions:
 
 jobs:
   build-native-macos:
-    runs-on: macos-14
+    strategy:
+      matrix:
+        include:
+          - runner: macos-14
+            arch: AppleSilicon
+            arch_label: arm64
+          - runner: macos-13
+            arch: Intel
+            arch_label: x64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +51,7 @@ jobs:
           echo "=== Swift version ==="
           swift --version 2>&1 | head -n 5
           xcodebuild -version 2>&1 | head -n 5
-          echo "=== Building ==="
+          echo "=== Building (${{ matrix.arch }}) ==="
           swift build -c release 2>&1 | tail -n 30
           echo "=== Result ==="
           ls -lh .build/release/CapatiClaw 2>&1 | head -n 10
@@ -52,20 +61,18 @@ jobs:
         run: |
           VERSION="${{ inputs.version || github.ref_name }}"
           VERSION="${VERSION#v}"
-          echo "Version: $VERSION"
+          ARCH="${{ matrix.arch }}"
+          echo "Version: $VERSION Arch: $ARCH"
 
-          # Create .app bundle
           APP="CapatiClaw.app"
           rm -rf "$APP"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-          # Copy Swift binary if built
           if [ -f "apps/macos/.build/release/CapatiClaw" ]; then
             cp "apps/macos/.build/release/CapatiClaw" "$APP/Contents/MacOS/CapatiClaw"
             chmod +x "$APP/Contents/MacOS/CapatiClaw"
-            echo "Swift binary included"
+            echo "Swift binary included ($ARCH)"
           else
-            # Fallback: shell launcher with bundled Node
             cat > "$APP/Contents/MacOS/CapatiClaw" << 'LAUNCHER'
           #!/bin/bash
           RESOURCES="$(cd "$(dirname "$0")/../Resources" && pwd)"
@@ -87,7 +94,6 @@ jobs:
             echo "Shell launcher used"
           fi
 
-          # Info.plist
           cat > "$APP/Contents/Info.plist" << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -106,12 +112,6 @@ jobs:
           PLIST
           echo -n "APPL????" > "$APP/Contents/PkgInfo"
 
-          # Icon
-          if [ -f "apps/macos/Icon.icon/Assets/icon_1024.png" ]; then
-            echo "Icon found"
-          fi
-
-          # Gateway + Node
           cp capaticlaw.mjs openclaw.mjs "$APP/Contents/Resources/" 2>/dev/null || true
           cp *.mjs "$APP/Contents/Resources/" 2>/dev/null || true
           cp package.json LICENSE "$APP/Contents/Resources/" 2>/dev/null || true
@@ -119,32 +119,26 @@ jobs:
           mkdir -p "$APP/Contents/Resources/skills-capati"
           cp skills/capati/SKILL.md "$APP/Contents/Resources/skills-capati/" 2>/dev/null || true
 
-          # Bundle Node for macOS
           mkdir -p "$APP/Contents/Resources/node"
           NODE_BIN=$(which node)
           cp "$NODE_BIN" "$APP/Contents/Resources/node/node" 2>/dev/null || echo "Node bundle skipped"
           chmod +x "$APP/Contents/Resources/node/node" 2>/dev/null || true
 
-          echo "=== App bundle ==="
+          echo "=== App bundle ($ARCH) ==="
           du -sh "$APP" 2>&1 | head -n 5
-          ls -lh "$APP/Contents/MacOS/CapatiClaw" "$APP/Contents/Info.plist" 2>&1 | head -n 5
 
-          # Create tar.gz
-          tar czf "CapatiClaw-${VERSION}-macOS-Native.tar.gz" -C . "$APP" 2>&1 | head -n 5
-          ls -lh "CapatiClaw-${VERSION}-macOS-Native.tar.gz" 2>&1 | head -n 5
+          tar czf "CapatiClaw-${VERSION}-macOS-${ARCH}-Native.tar.gz" -C . "$APP" 2>&1 | head -n 5
+          ls -lh "CapatiClaw-${VERSION}-macOS-${ARCH}-Native.tar.gz" 2>&1 | head -n 5
 
-          # Create DMG if possible
           if command -v hdiutil >/dev/null 2>&1; then
-            echo "Creating DMG..."
-            hdiutil create -volname "CapatiClaw" -srcfolder "$APP" -ov -format UDZO "CapatiClaw-${VERSION}.dmg" 2>&1 | tail -n 10
-            ls -lh "CapatiClaw-${VERSION}.dmg" 2>&1 | head -n 5
-          else
-            echo "hdiutil not available, skipping DMG"
+            echo "Creating DMG ($ARCH)..."
+            hdiutil create -volname "CapatiClaw" -srcfolder "$APP" -ov -format UDZO "CapatiClaw-${VERSION}-macOS-${ARCH}.dmg" 2>&1 | tail -n 10
+            ls -lh "CapatiClaw-${VERSION}-macOS-${ARCH}.dmg" 2>&1 | head -n 5
           fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: capaticlaw-macos-native
+          name: capaticlaw-macos-native-${{ matrix.arch }}
           path: |
             CapatiClaw-*.tar.gz
             CapatiClaw-*.dmg
