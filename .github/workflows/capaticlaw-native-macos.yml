@@ -15,16 +15,7 @@ permissions:
 
 jobs:
   build-native-macos:
-    strategy:
-      matrix:
-        include:
-          - runner: macos-14
-            arch: AppleSilicon
-            arch_label: arm64
-          - runner: macos-13
-            arch: Intel
-            arch_label: x64
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-14
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +42,7 @@ jobs:
           echo "=== Swift version ==="
           swift --version 2>&1 | head -n 5
           xcodebuild -version 2>&1 | head -n 5
-          echo "=== Building (${{ matrix.arch }}) ==="
+          echo "=== Building (AppleSilicon) ==="
           swift build -c release 2>&1 | tail -n 30
           echo "=== Result ==="
           ls -lh .build/release/CapatiClaw 2>&1 | head -n 10
@@ -61,7 +52,7 @@ jobs:
         run: |
           VERSION="${{ inputs.version || github.ref_name }}"
           VERSION="${VERSION#v}"
-          ARCH="${{ matrix.arch }}"
+          ARCH="AppleSilicon"
           echo "Version: $VERSION Arch: $ARCH"
 
           APP="CapatiClaw.app"
@@ -138,7 +129,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: capaticlaw-macos-native-${{ matrix.arch }}
+          name: capaticlaw-macos-native-AppleSilicon
           path: |
             CapatiClaw-*.tar.gz
             CapatiClaw-*.dmg
