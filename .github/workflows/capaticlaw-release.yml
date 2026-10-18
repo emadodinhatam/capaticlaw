@@ -35,7 +35,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 12.9.0
+          run_install: false
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Build runtime
@@ -77,7 +77,7 @@ jobs:
           node-version: "24.21.0"
       - uses: pnpm/action-setup@v4
         with:
-          version: 12.9.0
+          run_install: false
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_15.4.app 2>/dev/null || sudo xcode-select -s /Applications/Xcode.app
       - name: Install deps + build
@@ -127,7 +127,7 @@ jobs:
           node-version: "24.21.0"
       - uses: pnpm/action-setup@v4
         with:
-          version: 12.9.0
+          run_install: false
       - name: Install deps + build
         run: |
           pnpm install --frozen-lockfile
@@ -171,7 +171,7 @@ jobs:
           node-version: "24.21.0"
       - uses: pnpm/action-setup@v4
         with:
-          version: 12.9.0
+          run_install: false
       - name: Install deps + build
         run: |
           pnpm install --frozen-lockfile
@@ -211,7 +211,7 @@ jobs:
           node-version: "24.21.0"
       - uses: pnpm/action-setup@v4
         with:
-          version: 12.9.0
+          run_install: false
       - name: Install deps + build
         run: |
           pnpm install --frozen-lockfile
