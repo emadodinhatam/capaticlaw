@@ -19,10 +19,8 @@ jobs:
       matrix:
         include:
           - arch: AppleSilicon
-            node_arch: arm64
             swift_arch: arm64
           - arch: Intel
-            node_arch: x64
             swift_arch: x86_64
     runs-on: macos-14
     timeout-minutes: 60
@@ -34,7 +32,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24.21.0"
-          architecture: ${{ matrix.node_arch }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -132,8 +129,16 @@ jobs:
 
           # Bundle Node for this arch
           mkdir -p "$APP/Contents/Resources/node"
-          NODE_BIN=$(which node)
-          cp "$NODE_BIN" "$APP/Contents/Resources/node/node" 2>/dev/null || echo "Node bundle skipped"
+          if [ "$ARCH" = "Intel" ]; then
+            echo "Downloading Node x64 for Intel..."
+            curl -fsSL "https://nodejs.org/dist/v24.21.0/node-v24.21.0-darwin-x64.tar.gz" -o /tmp/node-x64.tar.gz 2>&1 | head -n 3
+            tar xzf /tmp/node-x64.tar.gz -C /tmp 2>&1 | head -n 3
+            cp /tmp/node-v24.21.0-darwin-x64/bin/node "$APP/Contents/Resources/node/node" 2>/dev/null || echo "Node x64 bundle failed"
+            rm -rf /tmp/node-x64.tar.gz /tmp/node-v24.21.0-darwin-x64 2>/dev/null || true
+          else
+            NODE_BIN=$(which node)
+            cp "$NODE_BIN" "$APP/Contents/Resources/node/node" 2>/dev/null || echo "Node bundle skipped"
+          fi
           chmod +x "$APP/Contents/Resources/node/node" 2>/dev/null || true
           file "$APP/Contents/Resources/node/node" 2>&1 | head -n 3
 
