@@ -15,6 +15,15 @@ permissions:
 
 jobs:
   build-native-macos:
+    strategy:
+      matrix:
+        include:
+          - arch: AppleSilicon
+            node_arch: arm64
+            swift_arch: arm64
+          - arch: Intel
+            node_arch: x64
+            swift_arch: x86_64
     runs-on: macos-14
     timeout-minutes: 60
     steps:
@@ -25,6 +34,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24.21.0"
+          architecture: ${{ matrix.node_arch }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -42,27 +52,37 @@ jobs:
           echo "=== Swift version ==="
           swift --version 2>&1 | head -n 5
           xcodebuild -version 2>&1 | head -n 5
-          echo "=== Building (AppleSilicon) ==="
-          swift build -c release 2>&1 | tail -n 30
+          echo "=== Building (${{ matrix.arch }} / ${{ matrix.swift_arch }}) ==="
+          swift build -c release --arch ${{ matrix.swift_arch }} 2>&1 | tail -n 30 || swift build -c release 2>&1 | tail -n 30
           echo "=== Result ==="
           ls -lh .build/release/CapatiClaw 2>&1 | head -n 10
+          ls -lh .build/${{ matrix.swift_arch }}-apple-macosx/release/CapatiClaw 2>&1 | head -n 10
           ls -lh .build/release/ 2>&1 | head -n 20
+          ls -lh .build/*/release/CapatiClaw 2>&1 | head -n 10
 
       - name: Package .app bundle
         run: |
           VERSION="${{ inputs.version || github.ref_name }}"
           VERSION="${VERSION#v}"
-          ARCH="AppleSilicon"
-          echo "Version: $VERSION Arch: $ARCH"
+          ARCH="${{ matrix.arch }}"
+          SWIFT_ARCH="${{ matrix.swift_arch }}"
+          echo "Version: $VERSION Arch: $ARCH Swift: $SWIFT_ARCH"
 
           APP="CapatiClaw.app"
           rm -rf "$APP"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-          if [ -f "apps/macos/.build/release/CapatiClaw" ]; then
-            cp "apps/macos/.build/release/CapatiClaw" "$APP/Contents/MacOS/CapatiClaw"
+          # Find Swift binary (arch-specific or generic)
+          SWIFT_BIN=""
+          for p in "apps/macos/.build/${SWIFT_ARCH}-apple-macosx/release/CapatiClaw" "apps/macos/.build/release/CapatiClaw"; do
+            if [ -f "$p" ]; then SWIFT_BIN="$p"; break; fi
+          done
+
+          if [ -n "$SWIFT_BIN" ]; then
+            cp "$SWIFT_BIN" "$APP/Contents/MacOS/CapatiClaw"
             chmod +x "$APP/Contents/MacOS/CapatiClaw"
-            echo "Swift binary included ($ARCH)"
+            echo "Swift binary included ($ARCH from $SWIFT_BIN)"
+            file "$APP/Contents/MacOS/CapatiClaw" 2>&1 | head -n 5
           else
             cat > "$APP/Contents/MacOS/CapatiClaw" << 'LAUNCHER'
           #!/bin/bash
@@ -82,7 +102,7 @@ jobs:
           [ $# -eq 0 ] && exec "$NODE" "$RESOURCES/capaticlaw.mjs" dashboard || exec "$NODE" "$RESOURCES/capaticlaw.mjs" "$@"
           LAUNCHER
             chmod +x "$APP/Contents/MacOS/CapatiClaw"
-            echo "Shell launcher used"
+            echo "Shell launcher used ($ARCH)"
           fi
 
           cat > "$APP/Contents/Info.plist" << PLIST
@@ -110,10 +130,12 @@ jobs:
           mkdir -p "$APP/Contents/Resources/skills-capati"
           cp skills/capati/SKILL.md "$APP/Contents/Resources/skills-capati/" 2>/dev/null || true
 
+          # Bundle Node for this arch
           mkdir -p "$APP/Contents/Resources/node"
           NODE_BIN=$(which node)
           cp "$NODE_BIN" "$APP/Contents/Resources/node/node" 2>/dev/null || echo "Node bundle skipped"
           chmod +x "$APP/Contents/Resources/node/node" 2>/dev/null || true
+          file "$APP/Contents/Resources/node/node" 2>&1 | head -n 3
 
           echo "=== App bundle ($ARCH) ==="
           du -sh "$APP" 2>&1 | head -n 5
@@ -129,7 +151,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: capaticlaw-macos-native-AppleSilicon
+          name: capaticlaw-macos-native-${{ matrix.arch }}
           path: |
             CapatiClaw-*.tar.gz
             CapatiClaw-*.dmg
