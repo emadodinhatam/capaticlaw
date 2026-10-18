@@ -54,13 +54,13 @@ jobs:
       - name: Pack npm tarball
         run: pnpm pack --pack-destination /tmp
         continue-on-error: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: capaticlaw-npm
           path: /tmp/capaticlaw-*.tgz
           if-no-files-found: warn
           retention-days: 7
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: capaticlaw-dist
           path: dist/
@@ -105,7 +105,7 @@ jobs:
           fi
           ls -lh CapatiClaw-* 2>&1 | head -n 20
           ls -lh apps/macos/*.dmg apps/macos/*.zip 2>&1 | head -n 20
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: capaticlaw-macos-intel
           path: |
@@ -149,7 +149,7 @@ jobs:
             ditto -c -k --sequesterRsrc --keepParent apps/macos/.build/release/CapatiClaw "CapatiClaw-${VERSION}-arm64.zip" || true
           fi
           ls -lh CapatiClaw-* 2>&1 | head -n 20
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: capaticlaw-macos-arm
           path: |
@@ -192,7 +192,7 @@ jobs:
           node --version
           pnpm --version
           ls -lh dist/ 2>&1 | head -n 20
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: capaticlaw-windows-x64
           path: |
@@ -232,7 +232,7 @@ jobs:
           # Always produce a tarball as fallback
           tar czf "CapatiClaw-${VERSION}-linux-x64.tar.gz" dist/ capaticlaw.mjs package.json 2>&1 | head -n 20
           ls -lh CapatiClaw-* 2>&1 | head -n 20
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: capaticlaw-linux
           path: |
