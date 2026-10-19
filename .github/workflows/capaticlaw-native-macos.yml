@@ -48,26 +48,41 @@ jobs:
         run: |
           echo "=== Swift version ==="
           swift --version 2>&1 | head -n 5
-          xcodebuild -version 2>&1 | head -n 5
           echo "=== Building (${{ matrix.arch }} / ${{ matrix.swift_arch }}) ==="
-          swift build -c release 2>&1 | tail -n 100
+          swift build -c release --verbose 2>&1 | tee /tmp/swift-build.log | tail -n 100
           BUILD_EXIT=${PIPESTATUS[0]}
           echo "=== Build exit: $BUILD_EXIT ==="
+          echo "=== Full log ==="
+          cat /tmp/swift-build.log 2>&1 | head -n 200
           echo "=== Result ==="
           ls -lh .build/release/CapatiClaw 2>&1 | head -n 10
           ls -lh .build/release/ 2>&1 | head -n 20
           if [ ! -f ".build/release/CapatiClaw" ]; then
-            echo "Main Swift failed, trying wrapper..."
-            swift build -c release --product CapatiClawWrapper 2>&1 | tail -n 50
-            if [ -f ".build/release/CapatiClawWrapper" ]; then
-              echo "Wrapper built!"
-              cp .build/release/CapatiClawWrapper .build/release/CapatiClaw
+            echo "Main Swift failed, trying wrapper with swiftc..."
+            swiftc -o /tmp/CapatiClawWrapper apps/macos/Sources/CapatiClawWrapper/main.swift -framework Cocoa -framework WebKit 2>&1 | tee /tmp/wrapper.log
+            cat /tmp/wrapper.log 2>&1 | head -n 50
+            if [ -f "/tmp/CapatiClawWrapper" ]; then
+              echo "Wrapper built with swiftc!"
+              mkdir -p .build/release
+              cp /tmp/CapatiClawWrapper .build/release/CapatiClaw
+              ls -lh .build/release/CapatiClaw
             else
-              echo "WARNING: No Swift binary, using Gateway wrapper"
+              echo "Trying Package wrapper..."
+              swift build -c release --product CapatiClawWrapper --verbose 2>&1 | tee /tmp/wrapper2.log | tail -n 50
+              cat /tmp/wrapper2.log 2>&1 | head -n 100
+              if [ -f ".build/release/CapatiClawWrapper" ]; then
+                echo "Wrapper built via Package!"
+                cp .build/release/CapatiClawWrapper .build/release/CapatiClaw
+              else
+                echo "WARNING: No Swift binary, using Gateway wrapper"
+                echo "=== Swift build log ==="
+                cat /tmp/swift-build.log 2>&1 | tail -n 100
+              fi
             fi
           else
             echo "Swift binary found!"
             ls -lh .build/release/CapatiClaw
+            file .build/release/CapatiClaw 2>&1 | head -n 5
           fi
 
       - name: Package .app bundle
