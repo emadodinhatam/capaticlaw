@@ -49,50 +49,14 @@ jobs:
           echo "=== Swift version ==="
           swift --version 2>&1 | head -n 5
           echo "=== Building (${{ matrix.arch }} / ${{ matrix.swift_arch }}) ==="
-          swift build -c release --verbose 2>&1 | tee /tmp/swift-build.log | tail -n 100
-          BUILD_EXIT=${PIPESTATUS[0]}
-          echo "=== Build exit: $BUILD_EXIT ==="
-          echo "=== Full log ==="
-          cat /tmp/swift-build.log 2>&1 | head -n 200
+          swift build -c release 2>&1 | tail -n 20
           echo "=== Result ==="
           ls -lh .build/release/CapatiClaw 2>&1 | head -n 10
-          ls -lh .build/release/ 2>&1 | head -n 20
-          if [ ! -f ".build/release/CapatiClaw" ]; then
-            echo "Main Swift failed, trying standalone wrapper..."
-            mkdir -p /tmp/capati-wrapper/Sources/CapatiClawWrapper
-            echo '// swift-tools-version: 5.9' > /tmp/capati-wrapper/Package.swift
-            echo 'import PackageDescription' >> /tmp/capati-wrapper/Package.swift
-            echo 'let package = Package(name: "CapatiWrapper", platforms: [.macOS(.v14)], products: [.executable(name: "CapatiClawWrapper", targets: ["CapatiClawWrapper"])], targets: [.executableTarget(name: "CapatiClawWrapper", path: "Sources/CapatiClawWrapper")])' >> /tmp/capati-wrapper/Package.swift
-            cp apps/macos/Sources/CapatiClawWrapper/main.swift /tmp/capati-wrapper/Sources/CapatiClawWrapper/
-            echo "Building standalone wrapper..."
-            (cd /tmp/capati-wrapper && swift build -c release --verbose 2>&1 | tee /tmp/wrapper-standalone.log | tail -n 50)
-            cat /tmp/wrapper-standalone.log 2>&1 | head -n 100
-            if [ -f "/tmp/capati-wrapper/.build/release/CapatiClawWrapper" ]; then
-              echo "Standalone wrapper built!"
-              mkdir -p .build/release
-              cp /tmp/capati-wrapper/.build/release/CapatiClawWrapper .build/release/CapatiClaw
-              ls -lh .build/release/CapatiClaw
-              file .build/release/CapatiClaw 2>&1 | head -n 5
-            else
-              echo "Standalone failed, trying swiftc..."
-              swiftc -o /tmp/CapatiClawWrapper /tmp/capati-wrapper/Sources/CapatiClawWrapper/main.swift -framework Cocoa -framework WebKit 2>&1 | tee /tmp/wrapper-swiftc.log
-              cat /tmp/wrapper-swiftc.log 2>&1 | head -n 50
-              if [ -f "/tmp/CapatiClawWrapper" ]; then
-                echo "Wrapper built with swiftc!"
-                mkdir -p .build/release
-                cp /tmp/CapatiClawWrapper .build/release/CapatiClaw
-              else
-                echo "WARNING: No Swift binary, using Gateway wrapper"
-                echo "=== swiftc log ==="
-                cat /tmp/wrapper-swiftc.log 2>&1 | tail -n 50
-                echo "=== standalone log ==="
-                cat /tmp/wrapper-standalone.log 2>&1 | tail -n 50
-              fi
-            fi
-          else
+          if [ -f ".build/release/CapatiClaw" ]; then
             echo "Swift binary found!"
-            ls -lh .build/release/CapatiClaw
             file .build/release/CapatiClaw 2>&1 | head -n 5
+          else
+            echo "No Swift binary, will use Gateway wrapper"
           fi
 
       - name: Package .app bundle
@@ -125,21 +89,12 @@ jobs:
           BUNDLED_NODE="$RESOURCES/node/node"
           [ -x "$BUNDLED_NODE" ] && NODE="$BUNDLED_NODE" || NODE="node"
           if [ ! -t 1 ]; then
-            if [ ! -f "$HOME/.openclaw/config.yaml" ] && [ ! -f "$HOME/.capaticlaw/config.yaml" ]; then
-              CMD="clear; echo '🦞 CapatiClaw — راه‌اندازی'; echo ''; \"$NODE\" \"$RESOURCES/capaticlaw.mjs\" onboard --install-daemon"
-            else
-              CMD="clear; echo '🦞 CapatiClaw'; echo ''; \"$NODE\" \"$RESOURCES/capaticlaw.mjs\" dashboard"
-            fi
-            [ $# -gt 0 ] && CMD="clear; \"$NODE\" \"$RESOURCES/capaticlaw.mjs\" $*"
-            if /usr/bin/osascript -e "tell application \"Terminal\" to activate" -e "tell application \"Terminal\" to do script \"$CMD\"" 2>/dev/null; then
-            exit 0
-          fi
-          TMP_CMD=$(mktemp /tmp/capaticlaw-XXXXXX.command)
-          echo "#!/bin/bash" > "$TMP_CMD"
-          echo "$CMD" >> "$TMP_CMD"
-          chmod +x "$TMP_CMD"
-          open -a Terminal "$TMP_CMD" 2>/dev/null && exit 0
-          /usr/bin/osascript -e 'display dialog "CapatiClaw: Terminal باز نشد. Terminal را باز کنید و capaticlaw dashboard را اجرا کنید." buttons {"OK"} default button "OK"' 2>/dev/null || true
+            LOG="$HOME/Library/Logs/CapatiClaw.log"
+            mkdir -p "$(dirname "$LOG")"
+            nohup "$NODE" "$RESOURCES/capaticlaw.mjs" gateway --port 18789 > "$LOG" 2>&1 &
+            sleep 2
+            open "http://127.0.0.1:18789/" 2>/dev/null || open "http://localhost:18789/" 2>/dev/null || true
+            /usr/bin/osascript -e 'display notification "CapatiClaw اجرا شد" with title "CapatiClaw"' 2>/dev/null || true
             exit 0
           fi
           [ $# -eq 0 ] && exec "$NODE" "$RESOURCES/capaticlaw.mjs" dashboard || exec "$NODE" "$RESOURCES/capaticlaw.mjs" "$@"
