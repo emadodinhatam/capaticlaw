@@ -50,12 +50,25 @@ jobs:
           swift --version 2>&1 | head -n 5
           xcodebuild -version 2>&1 | head -n 5
           echo "=== Building (${{ matrix.arch }} / ${{ matrix.swift_arch }}) ==="
-          swift build -c release --arch ${{ matrix.swift_arch }} 2>&1 | tail -n 30 || swift build -c release 2>&1 | tail -n 30
+          swift build -c release --arch ${{ matrix.swift_arch }} 2>&1 | tail -n 50
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo "First build failed, trying without arch..."
+            swift build -c release 2>&1 | tail -n 50
+            BUILD_EXIT=${PIPESTATUS[0]}
+          fi
+          echo "=== Build exit: $BUILD_EXIT ==="
           echo "=== Result ==="
           ls -lh .build/release/CapatiClaw 2>&1 | head -n 10
           ls -lh .build/${{ matrix.swift_arch }}-apple-macosx/release/CapatiClaw 2>&1 | head -n 10
           ls -lh .build/release/ 2>&1 | head -n 20
           ls -lh .build/*/release/CapatiClaw 2>&1 | head -n 10
+          if [ ! -f ".build/release/CapatiClaw" ] && [ ! -f ".build/${{ matrix.swift_arch }}-apple-macosx/release/CapatiClaw" ]; then
+            echo "ERROR: Swift binary not found!"
+            echo "=== Full build output ==="
+            swift build -c release 2>&1 | head -n 100
+            exit 1
+          fi
 
       - name: Package .app bundle
         run: |
