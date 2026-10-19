@@ -93,7 +93,15 @@ jobs:
               CMD="clear; echo '🦞 CapatiClaw'; echo ''; \"$NODE\" \"$RESOURCES/capaticlaw.mjs\" dashboard"
             fi
             [ $# -gt 0 ] && CMD="clear; \"$NODE\" \"$RESOURCES/capaticlaw.mjs\" $*"
-            /usr/bin/osascript -e "tell application \"Terminal\" to activate" -e "tell application \"Terminal\" to do script \"$CMD\"" 2>/dev/null || exec "$NODE" "$RESOURCES/capaticlaw.mjs" dashboard
+            if /usr/bin/osascript -e "tell application \"Terminal\" to activate" -e "tell application \"Terminal\" to do script \"$CMD\"" 2>/dev/null; then
+            exit 0
+          fi
+          TMP_CMD=$(mktemp /tmp/capaticlaw-XXXXXX.command)
+          echo "#!/bin/bash" > "$TMP_CMD"
+          echo "$CMD" >> "$TMP_CMD"
+          chmod +x "$TMP_CMD"
+          open -a Terminal "$TMP_CMD" 2>/dev/null && exit 0
+          /usr/bin/osascript -e 'display dialog "CapatiClaw: Terminal باز نشد. Terminal را باز کنید و capaticlaw dashboard را اجرا کنید." buttons {"OK"} default button "OK"' 2>/dev/null || true
             exit 0
           fi
           [ $# -eq 0 ] && exec "$NODE" "$RESOURCES/capaticlaw.mjs" dashboard || exec "$NODE" "$RESOURCES/capaticlaw.mjs" "$@"
