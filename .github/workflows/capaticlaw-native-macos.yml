@@ -44,31 +44,25 @@ jobs:
         run: pnpm build:runtime
 
       - name: Build Swift app
+        if: matrix.arch == 'AppleSilicon'
         working-directory: apps/macos
         run: |
           echo "=== Swift version ==="
           swift --version 2>&1 | head -n 5
           xcodebuild -version 2>&1 | head -n 5
           echo "=== Building (${{ matrix.arch }} / ${{ matrix.swift_arch }}) ==="
-          swift build -c release --arch ${{ matrix.swift_arch }} 2>&1 | tail -n 50
+          swift build -c release 2>&1 | tail -n 100
           BUILD_EXIT=${PIPESTATUS[0]}
-          if [ $BUILD_EXIT -ne 0 ]; then
-            echo "First build failed, trying without arch..."
-            swift build -c release 2>&1 | tail -n 50
-            BUILD_EXIT=${PIPESTATUS[0]}
-          fi
           echo "=== Build exit: $BUILD_EXIT ==="
           echo "=== Result ==="
           ls -lh .build/release/CapatiClaw 2>&1 | head -n 10
-          ls -lh .build/${{ matrix.swift_arch }}-apple-macosx/release/CapatiClaw 2>&1 | head -n 10
           ls -lh .build/release/ 2>&1 | head -n 20
-          ls -lh .build/*/release/CapatiClaw 2>&1 | head -n 10
-          if [ ! -f ".build/release/CapatiClaw" ] && [ ! -f ".build/${{ matrix.swift_arch }}-apple-macosx/release/CapatiClaw" ]; then
-            echo "ERROR: Swift binary not found!"
-            echo "=== Full build output ==="
-            swift build -c release 2>&1 | head -n 100
+          if [ ! -f ".build/release/CapatiClaw" ]; then
+            echo "ERROR: Swift binary not found! Full output:"
+            swift build -c release 2>&1 | head -n 200
             exit 1
           fi
+          echo "Swift binary found!"
 
       - name: Package .app bundle
         run: |
@@ -82,11 +76,11 @@ jobs:
           rm -rf "$APP"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-          # Find Swift binary (arch-specific or generic)
+          # Find Swift binary
           SWIFT_BIN=""
-          for p in "apps/macos/.build/${SWIFT_ARCH}-apple-macosx/release/CapatiClaw" "apps/macos/.build/release/CapatiClaw"; do
-            if [ -f "$p" ]; then SWIFT_BIN="$p"; break; fi
-          done
+          if [ -f "apps/macos/.build/release/CapatiClaw" ]; then
+            SWIFT_BIN="apps/macos/.build/release/CapatiClaw"
+          fi
 
           if [ -n "$SWIFT_BIN" ]; then
             cp "$SWIFT_BIN" "$APP/Contents/MacOS/CapatiClaw"
