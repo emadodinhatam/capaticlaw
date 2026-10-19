@@ -60,16 +60,9 @@ jobs:
           if [ ! -f ".build/release/CapatiClaw" ]; then
             echo "Main Swift failed, trying standalone wrapper..."
             mkdir -p /tmp/capati-wrapper/Sources/CapatiClawWrapper
-            cat > /tmp/capati-wrapper/Package.swift << 'WRAPPER_PKG'
-// swift-tools-version: 5.9
-import PackageDescription
-let package = Package(
-    name: "CapatiWrapper",
-    platforms: [.macOS(.v14)],
-    products: [.executable(name: "CapatiClawWrapper", targets: ["CapatiClawWrapper"])],
-    targets: [.executableTarget(name: "CapatiClawWrapper", path: "Sources/CapatiClawWrapper")]
-)
-WRAPPER_PKG
+            echo '// swift-tools-version: 5.9' > /tmp/capati-wrapper/Package.swift
+            echo 'import PackageDescription' >> /tmp/capati-wrapper/Package.swift
+            echo 'let package = Package(name: "CapatiWrapper", platforms: [.macOS(.v14)], products: [.executable(name: "CapatiClawWrapper", targets: ["CapatiClawWrapper"])], targets: [.executableTarget(name: "CapatiClawWrapper", path: "Sources/CapatiClawWrapper")])' >> /tmp/capati-wrapper/Package.swift
             cp apps/macos/Sources/CapatiClawWrapper/main.swift /tmp/capati-wrapper/Sources/CapatiClawWrapper/
             echo "Building standalone wrapper..."
             (cd /tmp/capati-wrapper && swift build -c release --verbose 2>&1 | tee /tmp/wrapper-standalone.log | tail -n 50)
