@@ -136,14 +136,7 @@ jobs:
             cp "apps/macos/Sources/OpenClaw/Resources/OpenClaw.icns" "$APP/Contents/Resources/AppIcon.icns"
             echo "Icon: OpenClaw.icns (fallback)"
           else
-            echo "No icns found, generating from favicon..."
-            # Generate icns from favicon if needed
-            python3 -c "
-from PIL import Image
-import subprocess, os
-# Try to generate icon
-print('Icon generation skipped - no source')
-" 2>&1 | head -n 5
+            echo "No icns found"
           fi
           ls -lh "$APP/Contents/Resources/AppIcon.icns" 2>&1 | head -n 3
 
