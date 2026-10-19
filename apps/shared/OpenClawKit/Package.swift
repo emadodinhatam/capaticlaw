@@ -3,17 +3,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "CapatiClawKit",
+    name: "OpenClawKit",
     platforms: [
         .iOS(.v18),
         .macOS(.v15),
         .watchOS(.v11),
     ],
     products: [
-        .library(name: "CapatiClawProtocol", targets: ["CapatiClawProtocol"]),
-        .library(name: "CapatiClawNativeState", targets: ["CapatiClawNativeState"]),
-        .library(name: "CapatiClawKit", targets: ["CapatiClawKit"]),
-        .library(name: "CapatiClawChatUI", targets: ["CapatiClawChatUI"]),
+        .library(name: "OpenClawProtocol", targets: ["OpenClawProtocol"]),
+        .library(name: "OpenClawNativeState", targets: ["OpenClawNativeState"]),
+        .library(name: "OpenClawKit", targets: ["OpenClawKit"]),
+        .library(name: "OpenClawChatUI", targets: ["OpenClawChatUI"]),
     ],
     traits: [
         .trait(name: "Talk", description: "ElevenLabs cloud TTS / talk support"),
@@ -27,8 +27,8 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "CapatiClawProtocol",
-            path: "Sources/CapatiClawProtocol",
+            name: "OpenClawProtocol",
+            path: "Sources/OpenClawProtocol",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ],
@@ -37,22 +37,22 @@ let package = Package(
             name: "GenerateGatewayProtocol",
             capability: .buildTool()),
         .target(
-            name: "CapatiClawNativeState",
-            path: "Sources/CapatiClawNativeState",
+            name: "OpenClawNativeState",
+            path: "Sources/OpenClawNativeState",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .target(
-            name: "CapatiClawKit",
+            name: "OpenClawKit",
             dependencies: [
-                "CapatiClawNativeState",
-                "CapatiClawProtocol",
+                "OpenClawNativeState",
+                "OpenClawProtocol",
                 .product(
                     name: "ElevenLabsKit",
                     package: "ElevenLabsKit",
                     condition: .when(platforms: [.iOS, .macOS], traits: ["Talk"])),
             ],
-            path: "Sources/CapatiClawKit",
+            path: "Sources/OpenClawKit",
             resources: [
                 .process("Resources"),
             ],
@@ -60,15 +60,15 @@ let package = Package(
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .target(
-            name: "CapatiClawChatUI",
+            name: "OpenClawChatUI",
             dependencies: [
-                "CapatiClawKit",
-                "CapatiClawProtocol",
+                "OpenClawKit",
+                "OpenClawProtocol",
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "Markdown", package: "swift-markdown"),
                 .product(name: "SwiftMath", package: "SwiftMath"),
             ],
-            path: "Sources/CapatiClawChatUI",
+            path: "Sources/OpenClawChatUI",
             resources: [
                 .copy("Resources/Mermaid"),
             ],
@@ -76,23 +76,23 @@ let package = Package(
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
         .testTarget(
-            name: "CapatiClawKitTests",
+            name: "OpenClawKitTests",
             dependencies: [
-                "CapatiClawKit",
-                "CapatiClawChatUI",
-                "CapatiClawProtocol",
+                "OpenClawKit",
+                "OpenClawChatUI",
+                "OpenClawProtocol",
                 .product(name: "GRDB", package: "GRDB.swift"),
             ],
-            path: "Tests/CapatiClawKitTests",
+            path: "Tests/OpenClawKitTests",
             resources: [.copy("Fixtures")],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
                 .enableExperimentalFeature("SwiftTesting"),
             ]),
         .testTarget(
-            name: "CapatiClawNativeStateTests",
-            dependencies: ["CapatiClawNativeState"],
-            path: "Tests/CapatiClawNativeStateTests",
+            name: "OpenClawNativeStateTests",
+            dependencies: ["OpenClawNativeState"],
+            path: "Tests/OpenClawNativeStateTests",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
                 .enableExperimentalFeature("SwiftTesting"),
