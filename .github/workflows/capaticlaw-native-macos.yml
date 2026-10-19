@@ -187,7 +187,7 @@ jobs:
             ls -lh "CapatiClaw-${VERSION}-macOS-${ARCH}.dmg" 2>&1 | head -n 5
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: capaticlaw-macos-native-${{ matrix.arch }}
           path: |

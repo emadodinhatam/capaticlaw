@@ -773,7 +773,7 @@ jobs:
 
       - name: Upload candidate artifact
         id: upload_candidate
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: openclaw-cross-os-release-checks-candidate-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/openclaw-cross-os-release-checks/prepare/package/${{ steps.candidate_metadata.outputs.file_name }}
@@ -782,7 +782,7 @@ jobs:
       - name: Upload source-built prerelease companion registry
         id: upload_prepublish_plugin_registry
         if: inputs.candidate_artifact_name == '' && steps.provider_requirements.outputs.json != '[]'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: openclaw-cross-os-prepublish-plugin-registry-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/openclaw-cross-os-release-checks/prepare/plugins/
@@ -791,7 +791,7 @@ jobs:
       - name: Upload baseline artifact
         if: ${{ inputs.mode != 'fresh' }}
         id: upload_baseline
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: openclaw-cross-os-release-checks-baseline-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/openclaw-cross-os-release-checks/prepare/baseline/${{ steps.baseline_metadata.outputs.file_name }}
@@ -1133,7 +1133,7 @@ jobs:
 
       - name: Upload release-check artifacts
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: openclaw-cross-os-release-checks-${{ matrix.artifact_name }}-${{ matrix.suite }}-${{ github.run_id }}
           path: ${{ runner.temp }}/openclaw-cross-os-release-checks/${{ matrix.artifact_name }}-${{ matrix.suite }}
