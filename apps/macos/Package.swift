@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "CapatiClaw",
     platforms: [
-        .macOS("26.2"),
+        .macOS("14.0"),
     ],
     products: [
         .library(name: "CapatiClawIPC", targets: ["CapatiClawIPC"]),
