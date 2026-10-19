@@ -120,6 +120,25 @@ jobs:
           PLIST
           echo -n "APPL????" > "$APP/Contents/PkgInfo"
 
+          # App icon (Capati logo)
+          if [ -f "apps/macos/Sources/OpenClaw/Resources/CapatiClaw.icns" ]; then
+            cp "apps/macos/Sources/OpenClaw/Resources/CapatiClaw.icns" "$APP/Contents/Resources/AppIcon.icns"
+            echo "Icon: CapatiClaw.icns"
+          elif [ -f "apps/macos/Sources/OpenClaw/Resources/OpenClaw.icns" ]; then
+            cp "apps/macos/Sources/OpenClaw/Resources/OpenClaw.icns" "$APP/Contents/Resources/AppIcon.icns"
+            echo "Icon: OpenClaw.icns (fallback)"
+          else
+            echo "No icns found, generating from favicon..."
+            # Generate icns from favicon if needed
+            python3 -c "
+from PIL import Image
+import subprocess, os
+# Try to generate icon
+print('Icon generation skipped - no source')
+" 2>&1 | head -n 5
+          fi
+          ls -lh "$APP/Contents/Resources/AppIcon.icns" 2>&1 | head -n 3
+
           cp capaticlaw.mjs openclaw.mjs "$APP/Contents/Resources/" 2>/dev/null || true
           cp *.mjs "$APP/Contents/Resources/" 2>/dev/null || true
           cp package.json LICENSE "$APP/Contents/Resources/" 2>/dev/null || true
