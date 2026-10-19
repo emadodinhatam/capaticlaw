@@ -13,6 +13,7 @@ let package = Package(
         .library(name: "OpenClawDiscovery", targets: ["OpenClawDiscovery"]),
         .executable(name: "CapatiClaw", targets: ["CapatiClaw"]),
         .executable(name: "capaticlaw-mac", targets: ["OpenClawMacCLI"]),
+        .executable(name: "CapatiClawWrapper", targets: ["CapatiClawWrapper"]),
     ],
     dependencies: [
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", exact: "3.1.0"),
@@ -81,6 +82,12 @@ let package = Package(
                 .copy("Resources/DeviceModels"),
                 .copy("Resources/ProviderIcons"),
             ],
+            swiftSettings: [
+                .enableUpcomingFeature("StrictConcurrency"),
+            ]),
+        .executableTarget(
+            name: "CapatiClawWrapper",
+            path: "Sources/CapatiClawWrapper",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),
